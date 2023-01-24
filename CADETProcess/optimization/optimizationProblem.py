@@ -1893,6 +1893,135 @@ class OptimizationProblem(Structure):
         return pareto_population
 
     @property
+    def cached_steps(self):
+        return \
+            self.cached_evaluators + \
+            self.objectives + \
+            self.nonlinear_constraints
+
+    @property
+    def cache_directory(self):
+        if self._cache_directory is None:
+            _cache_directory = settings.working_directory / f'diskcache_{self.name}'
+        else:
+            _cache_directory = Path(self._cache_directory).absolute()
+
+        if self.use_diskcache:
+            _cache_directory.mkdir(exist_ok=True, parents=True)
+
+        return _cache_directory
+
+    @cache_directory.setter
+    def cache_directory(self, cache_directory):
+        self._cache_directory = cache_directory
+
+    def setup_cache(self, n_shards=1):
+        self.cache = ResultsCache(self.use_diskcache, self.cache_directory, n_shards)
+
+    def delete_cache(self, reinit=False):
+        try:
+            self.cache.delete_database()
+        except AttributeError:
+            pass
+        if reinit:
+            self.setup_cache()
+
+    def prune_cache(self):
+        self.cache.prune()
+
+    @untransforms
+    def _evaluate(self, x, func, force=False):
+        """Iterate over all evaluation objects and evaluate at x.
+
+        Parameters
+        ----------
+        x : array_like
+            Value of the optimization variables.
+        func : Evaluator or Objective, or Nonlinear Constraint, or Callback
+            Evaluation function.
+        force : bool
+            If True, do not use cached results. The default is False.
+
+        Returns
+        -------
+        results : TYPE
+            DESCRIPTION.
+
+        """
+        self.logger.debug(f'evaluate {str(func)} at {x}')
+
+        results = []
+
+        if func.evaluators is not None:
+            requires = [*func.evaluators, func]
+        else:
+            requires = [func]
+
+        evaluation_objects = self.set_variables(x, func.evaluation_objects)
+        if len(evaluation_objects) == 0:
+            evaluation_objects = [None]
+
+        for eval_obj in evaluation_objects:
+            self.logger.debug(
+                f"Evaluating {func}. "
+                f"requires evaluation of {[str(req) for req in requires]}"
+            )
+
+            if eval_obj is None:
+                current_request = x
+            else:
+                current_request = eval_obj
+
+            if not force:
+                remaining = []
+                for step in reversed(requires):
+                    try:
+                        key = (eval_obj, step.id, str(x))
+                        result = self.cache.get(key)
+                        self.logger.debug(
+                            f'Got {str(step)} results from cache.'
+                        )
+                        current_request = result
+                        break
+                    except KeyError:
+                        pass
+
+                    remaining.insert(0, step)
+            else:
+                remaining = requires
+
+            self.logger.debug(
+                f'Evaluating remaining functions: '
+                f'{[str(step) for step in remaining]}.'
+            )
+
+            for step in remaining:
+                if isinstance(step, Callback):
+                    step.evaluate(current_request, eval_obj)
+                else:
+                    result = step.evaluate(current_request)
+                if step not in self.cached_steps:
+                    tag = 'temp'
+                else:
+                    tag = None
+                key = (str(eval_obj), step.id, str(x))
+                self.cache.set(key, result, tag=tag)
+                current_request = result
+
+            if not isinstance(result, list):
+                result = [result]
+
+            if len(result) != func.n_metrics:
+                raise CADETProcessError(
+                    f"Expected length {func.n_metrics} "
+                    f"for {str(func)}"
+                )
+
+            results += result
+
+        return results
+
+    @property
     def lower_bounds(self):
         """list: Lower bounds of all OptimizationVariables.
 
@@ -2630,9 +2759,9 @@ class OptimizationProblem(Structure):
     def cache_directory(self, cache_directory):
         self._cache_directory = cache_directory
 
-    def setup_cache(self):
+    def setup_cache(self, n_shards=1):
         """Setup cache to store (intermediate) results."""
-        self.cache = ResultsCache(self.use_diskcache, self.cache_directory)
+        self.cache = ResultsCache(self.use_diskcache, self.cache_directory, n_shards)
 
     def delete_cache(self, reinit=False):
         """Delete cache with (intermediate) results."""

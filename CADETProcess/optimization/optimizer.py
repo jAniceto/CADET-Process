@@ -230,7 +230,9 @@ class OptimizerBase(Structure):
         self.callbacks_dir = callbacks_dir
 
         if reinit_cache:
-            self.optimization_problem.setup_cache()
+            optimization_problem.setup_cache(self.n_cores)
+
+        self.logger = log.get_logger(str(self), level=log_level)
 
         if x0 is None:
             if optimization_problem.n_linear_equality_constraints > 0:
