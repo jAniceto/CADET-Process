@@ -39,6 +39,7 @@ from CADETProcess.transform import (
 from CADETProcess.metric import MetricBase
 
 from CADETProcess.optimization import ResultsCache
+from CADETProcess.optimization import Individual, Population
 
 
 @frozen_attributes
@@ -125,6 +126,28 @@ class OptimizationProblem(Structure):
         self._meta_scores = []
         self._multi_criteria_decision_functions = []
         self._callbacks = []
+
+    def converts_to_individual(func):
+        @wraps(func)
+        def wrapper(self, ind, *args, **kwargs):
+            """Converts x to Individual before calling function."""
+            if not isinstance(ind, Individual):
+                ind = Individual(ind)
+
+            return func(self, ind, *args, **kwargs)
+
+        return wrapper
+
+    def converts_to_population(func):
+        """Convert pop to Population before calling function."""
+        @wraps(func)
+        def wrapper(self, pop, *args, **kwargs):
+            if not isinstance(pop, Population):
+                pop = Population(pop)
+
+            return func(self, pop, *args, **kwargs)
+
+        return wrapper
 
     def untransforms(func):
         """Untransform population or individual before calling function."""
@@ -2792,15 +2815,36 @@ class OptimizationProblem(Structure):
                         ))
                     )
 
-                if not self.check_bounds(ind, get_dependent_values=True):
+                if not self.check_individual(ind):
                     continue
-                if not self.check_linear_constraints(ind, get_dependent_values=True):
-                    continue
-                if not self.check_linear_equality_constraints(ind, get_dependent_values=True):
-                    continue
+
                 values.append(ind)
 
         return np.array(values)
+
+    def check_individual(self, ind):
+        """Check if individual Validate individual.
+
+        Parameters
+        ----------
+        ind : Individual
+            Individual to be checked.
+
+        Returns
+        -------
+        flag : bool
+            True if individual is valud. False otherwise.
+
+        """
+        flag = True
+        if not self.check_bounds(ind, get_dependent_values=True):
+            flag = False
+        if not self.check_linear_constraints(ind, get_dependent_values=True):
+            flag = False
+        if not self.check_linear_equality_constraints(ind, get_dependent_values=True):
+            flag = False
+
+        return flag
 
     @property
     def parameters(self):
