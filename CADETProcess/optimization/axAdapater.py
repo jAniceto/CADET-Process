@@ -29,12 +29,14 @@ from ax.utils.notebook.plotting import render
 
 
 # can be commented out when the debugger launches inside CADET-process
-ROOT_DIR = os.path.join(os.getcwd(),"repos/CADET-Process/")
-DATA_DIR = os.path.join(ROOT_DIR, "examples/characterize_chromatographic_system")
+# ROOT_DIR = os.path.join(os.getcwd(),"repos/CADET-Process/")
+DATA_DIR = "examples/characterize_chromatographic_system"
 
 def load_data():
 
-    data = np.loadtxt(os.path.join(DATA_DIR,'experimental_data/non_pore_penetrating_tracer.csv'), delimiter=',')
+    data = np.loadtxt(os.path.join(
+        DATA_DIR, "experimental_data/non_pore_penetrating_tracer.csv"), 
+        delimiter=',')
 
     time_experiment = data[:, 0]
     c_experiment = data[:, 1]
@@ -180,6 +182,81 @@ def callback(simulation_results, individual, evaluation_object, callbacks_dir='.
 
 optimization_problem.add_callback(callback, requires=[simulator])
 
+def optimization_script(optimization_problem):
+
+    ax_client = AxClient()
+    ax_client.create_experiment(
+        name="non-penetrating Tracer",
+        parameters=[
+            {
+                "name": "bed_porosity",
+                "type": "range",
+                "bounds": [0.1, 0.6],
+                "value_type": "float",  # Optional, defaults to inference from type of "bounds".
+                "log_scale": False,  # Optional, defaults to False.
+            },
+            {
+                "name": "axial_dispersion",
+                "type": "range",
+                "bounds": [1e-10, 1e-1],
+                "log_scale": True
+            },
+        ],
+        # TODO: this can be passed from the comparator. I need to check
+        #       whether the comparator can be passed or if it needs the
+        #       difference metrics themselves.
+        # TODO: [Q] is the goal of all difference metrics minimization?
+        # this could be done like:
+        # {metric: ObjectiveProperties(minimize=True) for metric in 
+        #  optimization_problem.objective_labels}
+        objectives={"NRMSE": ObjectiveProperties(minimize=True)},
+        # parameter_constraints=["x1 + x2 <= 2.0"],  # Optional.
+        # outcome_constraints=["l2norm <= 1.25"],  # Optional.
+    )
+
+
+    def objective_function(parameters):
+        # TODO: This assumes that all parameters are specified in the correct
+        # order. This could be made more robust by using a mapping
+        x = [value for _, value in parameters.items()]
+
+        y = optimization_problem.evaluate_objectives(x)[0]
+        # which standard error is appropriate? 1.0 was assumed as a starting
+        # point
+        se = 1.0
+        return {"NRMSE": (y, se)}
+
+
+    for i in range(15):
+        parameters, trial_index = ax_client.get_next_trial()
+        # Local evaluation here can be replaced with deployment to external
+        # system.
+        ax_client.complete_trial(
+            trial_index=trial_index, 
+            raw_data=objective_function(parameters))
+
+
+
+    ax_client.get_max_parallelism()
+
+    ax_client.generation_strategy.trials_as_df
+
+
+
+    best_parameters, values = ax_client.get_best_parameters()
+    best_parameters
+
+    render(ax_client.get_contour_plot())
+
+    return ax_client
+
+
+ax_client = optimization_script(optimization_problem=optimization_problem)
+
+
+
+
+
 # this is where I start to create my interface
 # the goal is now to read out information from the optimization problem and
 # pass it to the AxClient
@@ -189,55 +266,10 @@ class AxInterface(OptimizerBase):
     populate that class step by step
     """
 
-
-    def run_scripted(self, optimization_problem):
-
-
-
-        ax_client = AxClient()
-        ax_client.create_experiment(
-            name="non-penetrating Tracer",
-            parameters=[
-                {
-                    "name": "feed",
-                    "type": "range",
-                    "bounds": [0.0, 1.0],
-                    "value_type": "float",  # Optional, defaults to inference from type of "bounds".
-                    "log_scale": False,  # Optional, defaults to False.
-                },
-                {
-                    "name": "x6",
-                    "type": "range",
-                    "bounds": [0.0, 1.0],
-                },
-            ],
-            objectives={"hartmann6": ObjectiveProperties(minimize=True)},
-            parameter_constraints=["x1 + x2 <= 2.0"],  # Optional.
-            outcome_constraints=["l2norm <= 1.25"],  # Optional.
-        )
+    def run(self):
+        pass
 
 
-        def evaluate(parameters):
-            x = np.array([parameters.get(f"x{i+1}") for i in range(6)])
-            # In our case, standard error is 0, since we are computing a synthetic function.
-            return {"hartmann6": (hartmann6(x), 0.0), "l2norm": (np.sqrt((x ** 2).sum()), 0.0)}
-
-
-        for i in range(25):
-            parameters, trial_index = ax_client.get_next_trial()
-            # Local evaluation here can be replaced with deployment to external system.
-            ax_client.complete_trial(trial_index=trial_index, raw_data=evaluate(parameters))
-
-
-        ax_client.get_max_parallelism()
-
-        ax_client.generation_strategy.trials_as_df
-
-
-
-        best_parameters, values = ax_client.get_best_parameters()
-        best_parameters
-
-
-optimizer = AxInterface()
-optimizer.run_scripted(optimization_problem=optimization_problem)
+# TODO: implement termination criteria
+# TODO: implement function plots (callbacks)
+# TODO: [Q] how do I run an individual simulation with updated parameters?
