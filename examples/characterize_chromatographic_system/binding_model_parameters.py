@@ -130,10 +130,10 @@ def create_comparator(target_data, name=None):
     comparator = Comparator(name=name)
     comparator.add_reference(target_data)
     comparator.add_difference_metric(
-        "PeakHeightDiverging", target_data, 'outlet.outlet', components=["Protein X"]
+        "PeakHeight", target_data, 'outlet.outlet', components=["Protein X"]
     )
     comparator.add_difference_metric(
-        "PeakPositionDiverging", target_data, 'outlet.outlet', components=["Protein X"]
+        "PeakPosition", target_data, 'outlet.outlet', components=["Protein X"]
     )
     return comparator
 

@@ -147,10 +147,10 @@ if __name__ == '__main__':
         comparator = Comparator(name=name)
         comparator.add_reference(target_data)
         comparator.add_difference_metric(
-            "PeakHeightDiverging", target_data, 'outlet.outlet',
+            "PeakHeight", target_data, 'outlet.outlet',
         )
         comparator.add_difference_metric(
-            "PeakPositionDiverging", target_data, 'outlet.outlet',
+            "PeakPosition", target_data, 'outlet.outlet',
         )
         return comparator
 

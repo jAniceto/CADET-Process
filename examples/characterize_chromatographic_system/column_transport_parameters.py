@@ -160,10 +160,10 @@ from CADETProcess.comparison import Comparator
 comparator = Comparator()
 comparator.add_reference(tracer_peak)
 comparator.add_difference_metric(
-    'PeakHeightDiverging', tracer_peak, 'outlet.outlet',
+    'PeakHeight', tracer_peak, 'outlet.outlet',
 )
 comparator.add_difference_metric(
-    'PeakPositionDiverging', tracer_peak, 'outlet.outlet',
+    'PeakPosition', tracer_peak, 'outlet.outlet',
 )
 #
 # if __name__ == '__main__':
