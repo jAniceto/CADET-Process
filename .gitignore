@@ -13,3 +13,6 @@ log/
 diskcache_*
 results_*
 *.egg-info
+examples\characterize_chromatographic_system\results_bed_porosity_axial_dispersion
+examples\characterize_chromatographic_system\tmp
+.idea

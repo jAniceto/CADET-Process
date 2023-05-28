@@ -8,7 +8,7 @@
 #       format_version: '1.3'
 #       jupytext_version: 1.14.5
 #   kernelspec:
-#     display_name: Python 3
+#     display_name: Python 3 (ipykernel)
 #     language: python
 #     name: python3
 # ---
@@ -17,7 +17,7 @@
 from pathlib import Path
 import sys
 
-root_dir = Path('../../../../').resolve()
+root_dir = Path('../../').resolve()
 sys.path.append(root_dir.as_posix())
 
 # %% [markdown]
@@ -39,18 +39,20 @@ sys.path.append(root_dir.as_posix())
 
 # %%
 import numpy as np
+
 data = np.loadtxt('experimental_data/non_pore_penetrating_tracer.csv', delimiter=',')
 
 time_experiment = data[:, 0]
 c_experiment = data[:, 1]
 
 from CADETProcess.reference import ReferenceIO
+
 tracer_peak = ReferenceIO(
     'Tracer Peak', time_experiment, c_experiment
 )
-
-if __name__ == '__main__':
-    _ = tracer_peak.plot()
+#
+# if __name__ == '__main__':
+#     _ = tracer_peak.plot()
 
 # %% [markdown]
 # ### Reference Model
@@ -62,6 +64,7 @@ if __name__ == '__main__':
 
 # %%
 from CADETProcess.processModel import ComponentSystem
+
 component_system = ComponentSystem(['Non-penetrating Tracer'])
 
 # %%
@@ -104,11 +107,11 @@ flow_sheet.add_connection(column, outlet)
 from CADETProcess.processModel import Process
 
 Q_ml_min = 0.5  # ml/min
-Q_m3_s = Q_ml_min/(60*1e6)
+Q_m3_s = Q_ml_min / (60 * 1e6)
 V_tracer = 50e-9  # m3
 
 process = Process(flow_sheet, 'Tracer')
-process.cycle_time = 15*60
+process.cycle_time = 15 * 60
 
 process.add_event(
     'feed_on',
@@ -119,14 +122,14 @@ process.add_event(
     'feed_off',
     'flow_sheet.feed.flow_rate',
     0,
-    V_tracer/Q_m3_s
+    V_tracer / Q_m3_s
 )
 
 process.add_event(
     'feed_water_on',
     'flow_sheet.eluent.flow_rate',
-     Q_m3_s,
-     V_tracer/Q_m3_s
+    Q_m3_s,
+    V_tracer / Q_m3_s
 )
 
 process.add_event(
@@ -141,11 +144,12 @@ process.add_event(
 
 # %%
 from CADETProcess.simulator import Cadet
-simulator = Cadet()
 
-if __name__ == '__main__':
-    simulation_results = simulator.simulate(process)
-    _ = simulation_results.solution.outlet.inlet.plot()
+simulator = Cadet()
+#
+# if __name__ == '__main__':
+#     simulation_results = simulator.simulate(process)
+#     _ = simulation_results.solution.outlet.inlet.plot()
 
 # %% [markdown]
 # ### Comparator
@@ -156,17 +160,21 @@ from CADETProcess.comparison import Comparator
 comparator = Comparator()
 comparator.add_reference(tracer_peak)
 comparator.add_difference_metric(
-    'NRMSE', tracer_peak, 'outlet.outlet',
+    'PeakHeightDiverging', tracer_peak, 'outlet.outlet',
 )
-
-if __name__ == '__main__':
-    comparator.plot_comparison(simulation_results)
+comparator.add_difference_metric(
+    'PeakPositionDiverging', tracer_peak, 'outlet.outlet',
+)
+#
+# if __name__ == '__main__':
+#     comparator.plot_comparison(simulation_results)
 
 # %% [markdown]
 # ### Optimization Problem
 
 # %%
 from CADETProcess.optimization import OptimizationProblem
+
 optimization_problem = OptimizationProblem('bed_porosity_axial_dispersion')
 
 optimization_problem.add_evaluation_object(process)
@@ -191,6 +199,7 @@ optimization_problem.add_objective(
     requires=[simulator]
 )
 
+
 def callback(simulation_results, individual, evaluation_object, callbacks_dir='./'):
     comparator.plot_comparison(
         simulation_results,
@@ -198,26 +207,20 @@ def callback(simulation_results, individual, evaluation_object, callbacks_dir='.
         show=False
     )
 
-
-optimization_problem.add_callback(callback, requires=[simulator])
+optimization_problem.add_callback(callback, requires=[simulator], callbacks_dir="./")
 
 # %% [markdown]
 # ### Optimizer
 
 # %%
-from CADETProcess.optimization import U_NSGA3
-optimizer = U_NSGA3()
+# from CADETProcess.optimization import U_NSGA3
 
-# %% [markdown]
-# ```{note}
-# For performance reasons, the optimization is currently not run when building the documentation.
-# In future, we will try to sideload pre-computed results to also discuss them here.
-# ```
-#
-# ```
-# if __name__ == '__main__':
-#     optimization_results = optimizer.optimize(
-#         optimization_problem,
-#         use_checkpoint=True
-#     )
-# ```
+optimizer = U_NSGA3()
+# optimizer.n_cores = 1
+# optimizer.pop_size = 10
+
+if __name__ == '__main__':
+    optimization_results = optimizer.optimize(
+        optimization_problem,
+        use_checkpoint=False
+    )

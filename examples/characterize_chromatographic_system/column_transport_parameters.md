@@ -7,18 +7,18 @@ jupytext:
     format_version: 0.13
     jupytext_version: 1.14.5
 kernelspec:
-  display_name: Python 3
+  display_name: Python 3 (ipykernel)
   language: python
   name: python3
 ---
 
-```{code-cell}
+```{code-cell} ipython3
 :tags: [remove-cell]
 
 from pathlib import Path
 import sys
 
-root_dir = Path('../../../../').resolve()
+root_dir = Path('../../').resolve()
 sys.path.append(root_dir.as_posix())
 ```
 
@@ -38,7 +38,7 @@ It occurs due to differences in velocity between different layers of the fluid, 
 To determine the value of these parameters, an experiment is conducted using a non-pore-penetrating tracer.
 The tracer is injected into the column and its concentration at the column outlet is measured and compared to the concentration predicted by simulation results.
 
-```{code-cell}
+```{code-cell} ipython3
 import numpy as np
 data = np.loadtxt('experimental_data/non_pore_penetrating_tracer.csv', delimiter=',')
 
@@ -61,12 +61,12 @@ Arbitrary values can be set for the unknown parameters such as `bed_porosity` an
 In order to model that the non-penetrating tracer does in fact not enter the pore, the `film_diffusion` needs to be set to $0$.
 Moreover, `particle_porosity` will be determined using a separate experiment.
 
-```{code-cell}
+```{code-cell} ipython3
 from CADETProcess.processModel import ComponentSystem
 component_system = ComponentSystem(['Non-penetrating Tracer'])
 ```
 
-```{code-cell}
+```{code-cell} ipython3
 from CADETProcess.processModel import Inlet, Outlet, LumpedRateModelWithPores
 
 feed = Inlet(component_system, name='feed')
@@ -89,7 +89,7 @@ column.film_diffusion = [0]
 outlet = Outlet(component_system, name='outlet')
 ```
 
-```{code-cell}
+```{code-cell} ipython3
 from CADETProcess.processModel import FlowSheet
 
 flow_sheet = FlowSheet(component_system)
@@ -104,7 +104,7 @@ flow_sheet.add_connection(eluent, column)
 flow_sheet.add_connection(column, outlet)
 ```
 
-```{code-cell}
+```{code-cell} ipython3
 from CADETProcess.processModel import Process
 
 Q_ml_min = 0.5  # ml/min
@@ -143,7 +143,7 @@ process.add_event(
 
 ### Simulator
 
-```{code-cell}
+```{code-cell} ipython3
 from CADETProcess.simulator import Cadet
 simulator = Cadet()
 
@@ -154,7 +154,7 @@ if __name__ == '__main__':
 
 ### Comparator
 
-```{code-cell}
+```{code-cell} ipython3
 from CADETProcess.comparison import Comparator
 
 comparator = Comparator()
@@ -169,7 +169,7 @@ if __name__ == '__main__':
 
 ### Optimization Problem
 
-```{code-cell}
+```{code-cell} ipython3
 from CADETProcess.optimization import OptimizationProblem
 optimization_problem = OptimizationProblem('bed_porosity_axial_dispersion')
 
@@ -208,9 +208,18 @@ optimization_problem.add_callback(callback, requires=[simulator])
 
 ### Optimizer
 
-```{code-cell}
+```{code-cell} ipython3
 from CADETProcess.optimization import U_NSGA3
 optimizer = U_NSGA3()
+optimizer.n_cores = 1
+```
+
+```{code-cell} ipython3
+if __name__ == '__main__':
+    optimization_results = optimizer.optimize(
+        optimization_problem,
+        use_checkpoint=False
+    )
 ```
 
 ```{note}
@@ -224,4 +233,8 @@ if __name__ == '__main__':
         optimization_problem,
         use_checkpoint=True
     )
+```
+
+```{code-cell} ipython3
+
 ```

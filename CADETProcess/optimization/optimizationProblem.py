@@ -3101,6 +3101,7 @@ class Callback(metaclass=StructMeta):
             callbacks_dir = Path(callbacks_dir)
             callbacks_dir.mkdir(exist_ok=True, parents=True)
         self.callbacks_dir = callbacks_dir
+        self._callbacks_dir = "./callback/"
 
         self.keep_progress = keep_progress
 

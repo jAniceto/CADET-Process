@@ -240,10 +240,9 @@ class Comparator(metaclass=StructMeta):
 
         comparison_fig_all, comparison_axs_all = plt.subplots(
             nrows=n,
-            figsize=(8 + 4 + 2, n*8 + 2),
+            figsize=(8 + 4 + 2, n * 8 + 2),
             squeeze=False
         )
-        plt.close(comparison_fig_all)
         comparison_axs_all = comparison_axs_all.reshape(-1)
 
         comparison_fig_ind = []
@@ -252,19 +251,21 @@ class Comparator(metaclass=StructMeta):
             fig, axs = plt.subplots()
             comparison_fig_ind.append(fig)
             comparison_axs_ind.append(axs)
-            plt.close(fig)
 
         comparison_axs_ind = \
             np.array(comparison_axs_ind).reshape(comparison_axs_all.shape)
 
         if plot_individual:
+            plt.close(comparison_fig_all)
             return comparison_fig_ind, comparison_axs_ind
         else:
+            for fig in comparison_fig_ind:
+                plt.close(fig)
             return comparison_fig_all, comparison_axs_all
 
     def plot_comparison(
             self, simulation_results, axs=None, figs=None,
-            file_name=None, show=True, plot_individual=False):
+            file_name=None, show=True, plot_individual=False, **kwargs):
         """Plot the comparison of the simulation results with the reference data.
 
         Parameters
@@ -281,6 +282,9 @@ class Comparator(metaclass=StructMeta):
             If True, displays the figure(s) on the screen.
         plot_individual : bool, optional
             If True, generates a separate figure for each metric.
+        **kwargs
+            Additional keyword arguments to be passed to the
+            solution.plot method.
 
         Returns
         -------
@@ -302,10 +306,11 @@ class Comparator(metaclass=StructMeta):
                 solution.smooth_data()
             solution_sliced = metric.slice_and_transform(solution)
 
-            fig, ax = solution_sliced.plot(
+            fig, ax = solution.plot(
                 ax=ax,
                 show=False,
-                y_max=1.1*np.max(metric.reference.solution)
+                y_max=1.1 * np.max(metric.reference.solution),
+                **kwargs
             )
 
             plot_args = {
@@ -347,10 +352,6 @@ class Comparator(metaclass=StructMeta):
             if not show:
                 plt.close(fig)
             else:
-                dummy = plt.figure(figsize=fig.get_size_inches())
-                new_manager = dummy.canvas.manager
-                new_manager.canvas.figure = fig
-                fig.set_canvas(new_manager.canvas)
                 plt.show()
 
         if file_name is not None:
