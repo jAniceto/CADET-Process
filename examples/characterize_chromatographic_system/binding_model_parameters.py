@@ -25,7 +25,7 @@ import numpy as np
 
 from CADETProcess.plotting import SecondaryAxis
 
-root_dir = Path('../../').resolve()
+root_dir = Path('../../../../').resolve()
 sys.path.append(root_dir.as_posix())
 
 from CADETProcess.reference import ReferenceIO

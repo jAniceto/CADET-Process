@@ -17,7 +17,7 @@
 from pathlib import Path
 import sys
 
-root_dir = Path('../../').resolve()
+root_dir = Path('../../../../').resolve()
 sys.path.append(root_dir.as_posix())
 
 # %% [markdown]
