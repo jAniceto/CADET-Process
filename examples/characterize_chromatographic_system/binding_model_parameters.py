@@ -123,25 +123,25 @@ def create_optimization_problem(experiment_base="gradients"):
     )
 
     optimization_problem.add_variable(
-        name='sma_kd', parameter_path='flow_sheet.column.binding_model.desorption_rate',
-        lb=1e-2, ub=1e4,
-        transform='auto',
-        component_index=1
-    )
-
-    optimization_problem.add_variable(
         name='sma_characteristic_charge', parameter_path='flow_sheet.column.binding_model.characteristic_charge',
         lb=1, ub=50,
         transform='auto',
         component_index=1
     )
 
-    optimization_problem.add_variable(
-        name='sma_steric_factor', parameter_path='flow_sheet.column.binding_model.steric_factor',
-        lb=1, ub=50,
-        transform='auto',
-        component_index=1
-    )
+    if experiment_base == "bt":
+        optimization_problem.add_variable(
+            name='sma_kd', parameter_path='flow_sheet.column.binding_model.desorption_rate',
+            lb=1e-2, ub=1e4,
+            transform='auto',
+            component_index=1
+        )
+        optimization_problem.add_variable(
+            name='sma_steric_factor', parameter_path='flow_sheet.column.binding_model.steric_factor',
+            lb=1, ub=50,
+            transform='auto',
+            component_index=1
+        )
 
     # def callback(simulation_results, individual, evaluation_object, callbacks_dir='./callback/'):
     #     sec = SecondaryAxis()
