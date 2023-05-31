@@ -108,22 +108,20 @@ def create_multicomponent_SMA_LWE():
     return process
 
 
-def create_singlecomponent_SMA_LWE(name: str = None, gradient_cv_length: float = None, ):
+def create_singlecomponent_SMA_bt():
     # Component System
     component_system = ComponentSystem()
     component_system.add_component('Salt')
-    component_system.add_component("Protein X")
+    component_system.add_component('A')
 
     # Binding Model
-    binding_model = StericMassAction(component_system, name=name)
+    binding_model = StericMassAction(component_system, name='SMA')
     binding_model.is_kinetic = True
     binding_model.adsorption_rate = [0.0, 35.5]
     binding_model.desorption_rate = [0.0, 1000]
     binding_model.characteristic_charge = [0.0, 4.7]
     binding_model.steric_factor = [0.0, 11.83]
     binding_model.capacity = 1200.0
-    # binding_model.reference_liquid_phase_conc = 500
-    # binding_model.reference_solid_phase_conc = 1200
 
     # Unit Operations
     inlet = Inlet(component_system, name='inlet')
@@ -139,6 +137,8 @@ def create_singlecomponent_SMA_LWE(name: str = None, gradient_cv_length: float =
     column.particle_porosity = 0.75
     column.axial_dispersion = 5.75e-8
     column.film_diffusion = column.n_comp * [6.9e-6]
+    # column.pore_diffusion = [7e-10, 6.07e-11]
+    # column.surface_diffusion = column.n_bound_states * [0.0]
 
     column.c = [50, 0]
     column.cp = [50, 0]
@@ -157,31 +157,19 @@ def create_singlecomponent_SMA_LWE(name: str = None, gradient_cv_length: float =
     flow_sheet.add_connection(column, outlet)
 
     # Process
-    process = Process(flow_sheet, name=name)
+    process = Process(flow_sheet, 'Breakthrough')
 
-    load_duration = 9
-    t_gradient_start = 90.0
+    load_duration = 1000
+    t_gradient_start = 1000.0 + load_duration
     gradient_post_wash = 180.0
 
-    if gradient_cv_length is None:
-        process.cycle_time = 2000.0
-        gradient_duration = process.cycle_time - t_gradient_start - gradient_post_wash
-        t_gradient_end = gradient_duration + t_gradient_start
-    else:
-        gradient_duration = gradient_cv_length * column.volume / inlet.flow_rate[0]
-        t_gradient_end = gradient_duration + t_gradient_start
-        process.cycle_time = gradient_duration + t_gradient_start + gradient_post_wash
+    process.cycle_time = t_gradient_start + gradient_post_wash
 
     c_load = np.array([50.0, 1.0])
     c_wash = np.array([50.0, 0.0])
-    c_elute = np.array([500.0, 0.0])
-    gradient_slope = (c_elute - c_wash) / gradient_duration
-    c_gradient_poly = np.array(list(zip(c_wash, gradient_slope)))
 
     process.add_event('load', 'flow_sheet.inlet.c', c_load)
     process.add_event('wash', 'flow_sheet.inlet.c', c_wash, load_duration)
-    process.add_event('grad_start', 'flow_sheet.inlet.c', c_gradient_poly, t_gradient_start)
-    process.add_event('grad_end', 'flow_sheet.inlet.c', c_elute, t_gradient_end)
     return process
 
 
@@ -190,8 +178,8 @@ if __name__ == '__main__':
     from CADETProcess.simulator import Cadet
     from CADETProcess.plotting import SecondaryAxis
 
-    for cv in [5, 30, 120]:
-        process = create_singlecomponent_SMA_LWE(name=str(cv), gradient_cv_length=cv)
+    for cv in ["bt"]:
+        process = create_singlecomponent_SMA_bt()
         process_simulator = Cadet()
 
         simulation_results = process_simulator.simulate(process)
@@ -206,6 +194,6 @@ if __name__ == '__main__':
         solution = simulation_results.solution.outlet.outlet.solution[:, 1]
         solution_noise = solution * (((np.random.random(solution.shape) - 0.5) * 0.03) + 1)
         os.makedirs(os.path.join(os.getcwd(), "experimental_data"), exist_ok=True)
-        np.savetxt(f"experimental_data\\gradient_elution_{cv} cv.csv",
+        np.savetxt(f"experimental_data\\breakthrough.csv",
                    np.concatenate([time.reshape(-1, 1), solution_noise.reshape(-1, 1)], axis=1),
                    delimiter=",")
