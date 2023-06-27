@@ -8,6 +8,7 @@ import warnings
 from cadet import H5
 import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 
 from CADETProcess import settings
 from CADETProcess import log
@@ -480,6 +481,11 @@ class OptimizerBase(Structure):
             If None, internal pareto front is used to determine best values.
 
         """
+        X = np.array(X, ndmin=2)
+        F = np.array(F, ndmin=2)
+        G = np.array(G, ndmin=2)
+        CV = np.array(CV, ndmin=2)
+
         if self.optimization_problem.n_meta_scores > 0:
             M = self.optimization_problem.evaluate_meta_scores_population(
                 X_transformed,
