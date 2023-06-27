@@ -175,6 +175,29 @@ class OptimizationResults(Structure):
         self._populations.append(population)
         self.population_all.update(population)
 
+    def update(self, new):
+        """Update Results.
+
+        Parameters
+        ----------
+        new : Individual, Population
+            New results
+
+        Raises
+        ------
+        CADETProcessError
+            If new is not an instance of Individual or Population
+        """
+        if isinstance(new, Individual):
+            population = Population()
+            population.add_individual(new)
+        elif isinstance(new, Population):
+            population = new
+        else:
+            raise CADETProcessError("Expected Population or Individual")
+        self._populations.append(population)
+        self.population_all.update(population)
+
     def update_pareto(self, pareto_new=None):
         """Update pareto front with new population.
 
