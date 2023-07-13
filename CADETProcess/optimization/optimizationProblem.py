@@ -276,7 +276,12 @@ class OptimizationProblem(Structure):
 
     @property
     def variable_values(self):
-        """list: Values of optimization variables."""
+        """list: Values of optimization variables in untransformed space."""
+        return [var.value for var in self.variables]
+
+    @property
+    def variable_values_transformed(self):
+        """list: Values of optimization variables in transformed space."""
         return [var.value for var in self.variables]
 
     def add_variable(
@@ -587,6 +592,15 @@ class OptimizationProblem(Structure):
                 x_independent.append(value)
 
         return x_independent
+
+    def validate_x(self, x, is_transformed=False):
+        # Untransform (<= Here could be issues...)
+        x = self.untransform(x)
+        # Round according to precision
+        x = self.get_dependent_values(x)
+        # Set values
+
+        pass
 
     @untransforms
     def set_variables(self, x, evaluation_objects=-1):
@@ -2599,7 +2613,7 @@ class OptimizationProblem(Structure):
 
         for i, ind in enumerate(x_transformed_2d):
             untransform[i, :] = [
-                var.untransform_fun(value)
+                var.untransform_fun(value, var.precision)
                 for value, var in zip(ind, self.independent_variables)
             ]
 
@@ -3209,11 +3223,11 @@ class OptimizationVariable:
     def transform(self):
         return self._transform
 
-    def transform_fun(self, x):
-        return self._transform.transform(x)
+    def transform_fun(self, x, *args, **kwargs):
+        return self._transform.transform(x, *args, **kwargs)
 
-    def untransform_fun(self, x):
-        return self._transform.untransform(x)
+    def untransform_fun(self, x, *args, **kwargs):
+        return self._transform.untransform(x, *args, **kwargs)
 
     def add_dependency(self, dependencies, transform):
         """Add dependency of Variable on other Variables.
