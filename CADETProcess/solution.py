@@ -48,7 +48,6 @@ from CADETProcess import CADETProcessError
 from CADETProcess import smoothing
 from CADETProcess import transform
 
-
 __all__ = [
     'SolutionIO',
     'SolutionBulk',
@@ -193,7 +192,7 @@ class SolutionBase(Structure):
 
         purity = np.zeros(solution.shape)
         with np.errstate(divide='ignore', invalid='ignore'):
-            purity = solution/c_total
+            purity = solution / c_total
 
         purity = np.nan_to_num(purity)
 
@@ -208,7 +207,7 @@ class SolutionBase(Structure):
 
         purity = np.zeros(solution.shape)
         with np.errstate(divide='ignore', invalid='ignore'):
-            purity = solution/c_total
+            purity = solution / c_total
 
         purity = np.nan_to_num(purity)
 
@@ -468,7 +467,7 @@ class SolutionIO(SolutionBase):
             end = self.cycle_time
 
         def dm_dt(t, flow_rate, solution):
-            dm_dt = flow_rate.value(t)*solution(t)
+            dm_dt = flow_rate.value(t) * solution(t)
             return dm_dt
 
         points = None
@@ -519,7 +518,7 @@ class SolutionIO(SolutionBase):
             ax=None,
             *args,
             **kwargs,
-            ):
+    ):
         """Plot the entire time_signal for each component.
 
         Parameters
@@ -664,10 +663,11 @@ class SolutionIO(SolutionBase):
 
         local_purity_components = solution.local_purity_components * 100
         local_purity_species = solution.local_purity_species * 100
+        colors = iter(plt.rcParams["axes.prop_cycle"].by_key()["color"])
 
         species_index = 0
         for i, comp in enumerate(solution.component_system.components):
-            color = next(ax._get_lines.prop_cycler)['color']
+            color = next(colors)
             if hide_labels:
                 label = None
             else:
@@ -729,7 +729,7 @@ class SolutionBulk(SolutionBase):
             component_system,
             time, solution,
             axial_coordinates=None, radial_coordinates=None
-            ):
+    ):
         self.name = name
         self.component_system_original = component_system
         self.time_original = time
@@ -769,7 +769,7 @@ class SolutionBulk(SolutionBase):
             ax=None,
             *args,
             **kwargs,
-            ):
+    ):
         """Plot the entire time_signal for each component.
 
         Parameters
@@ -846,7 +846,7 @@ class SolutionBulk(SolutionBase):
             ax=None,
             *args,
             **kwargs,
-            ):
+    ):
         """Plot bulk solution over space at given time.
 
         Parameters
@@ -903,7 +903,7 @@ class SolutionBulk(SolutionBase):
             ax=None,
             *args,
             **kwargs,
-            ):
+    ):
         """Plot bulk solution over time at given position.
 
         Parameters
@@ -973,7 +973,7 @@ class SolutionParticle(SolutionBase):
             axial_coordinates=None,
             radial_coordinates=None,
             particle_coordinates=None
-            ):
+    ):
 
         self.axial_coordinates = axial_coordinates
         # Account for dimension reduction in case of only one cell (e.g. LRMP)
@@ -1015,7 +1015,7 @@ class SolutionParticle(SolutionBase):
             ax=None,
             *args,
             **kwargs,
-            ):
+    ):
         """Plot bulk solution over space at given time.
 
         Parameters
@@ -1062,7 +1062,6 @@ class SolutionParticle(SolutionBase):
         plotting.add_text(ax, f'time = {t:.2f} s')
 
         return ax
-
 
     def _plot_2D(self, t, comp, vmax, ax=None):
         x = self.axial_coordinates
@@ -1194,7 +1193,7 @@ class SolutionSolid(SolutionBase):
             ax=None,
             *args,
             **kwargs,
-            ):
+    ):
         """Plot the entire time_signal for each component.
 
         Parameters
@@ -1268,7 +1267,7 @@ class SolutionSolid(SolutionBase):
             ax=None,
             *args,
             **kwargs,
-            ):
+    ):
         """Plot bulk solution over space at given time.
 
         Parameters
@@ -1323,7 +1322,7 @@ class SolutionSolid(SolutionBase):
         if not self.time[0] <= t <= self.time[-1]:
             raise ValueError("Time exceeds bounds.")
         t_i = np.where(t <= self.time)[0][0]
-        c_i = comp*self.n_bound + state
+        c_i = comp * self.n_bound + state
         v = self.solution[t_i, :, :, c_i].transpose()
 
         if vmax is None:
@@ -1431,8 +1430,7 @@ def _plot_solution_1D(
         secondary_axis=None, secondary_layout=None,
         show_legend=True,
         update_layout=True,
-        ):
-
+):
     sol = solution.solution
     c_total_comp = solution.total_concentration_components
 
@@ -1495,7 +1493,7 @@ def _plot_solution_1D(
                     label = species
 
                 if comp.n_species == 1 \
-                        and not plot_total_concentration\
+                        and not plot_total_concentration \
                         and not plot_components:
                     linestyle = '-'
                 else:
@@ -1541,12 +1539,12 @@ def _plot_solution_1D(
         )
 
     if layout.y_lim is None:
-        layout.y_lim = (y_min, 1.1*y_max)
+        layout.y_lim = (y_min, 1.1 * y_max)
 
     if secondary_axis is not None and secondary_layout is None:
         secondary_layout = plotting.Layout()
         secondary_layout.y_label = secondary_axis.y_label
-        secondary_layout.y_lim = (y_min_sec, 1.1*y_max_sec)
+        secondary_layout.y_lim = (y_min_sec, 1.1 * y_max_sec)
 
     if update_layout:
         plotting.set_layout(
@@ -1565,9 +1563,9 @@ class InterpolatedSignal():
         if len(signal.shape) == 1:
             signal = np.array(signal, ndmin=2).transpose()
         self._solutions = [
-                PchipInterpolator(time, signal[:, comp])
-                for comp in range(signal.shape[1])
-                ]
+            PchipInterpolator(time, signal[:, comp])
+            for comp in range(signal.shape[1])
+        ]
         self._derivatives = [signal.derivative() for signal in self._solutions]
         self._antiderivatives = [signal.antiderivative() for signal in self._solutions]
 
